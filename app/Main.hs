@@ -22,7 +22,13 @@ main = do
     bgroup (show (n + 1) ++ " threads")
       [ bench "IORef" $ whnfIO $ do
           xs <- forM [0 .. n] $ \i -> asyncOn i $
-            replicateM_ 10000 $ atomicModifyIORef ref $ \x -> let !x' = x + 1 in (x', ())
+            replicateM_ 10000 $ do
+              b <- atomicModifyIORef ref $ \x -> let !x' = x+1 in x' `seq` (x', ())
+              b `seq` return b
+          mapM_ wait xs
+      , bench "IORef strict" $ whnfIO $ do
+          xs <- forM [0 .. n] $ \i -> asyncOn i $
+            replicateM_ 10000 $ atomicModifyIORef' ref $ \x -> (x+1, ())
           mapM_ wait xs
       ,  bench "MVar" $ whnfIO $ do
            xs <- forM [0 .. n] $ \i -> asyncOn i $
@@ -34,7 +40,9 @@ main = do
            mapM_ wait xs
       ,  bench "atomicModifyIORefCAS" $ whnfIO $ do
            xs <- forM [0 .. n] $ \i -> asyncOn i $
-             replicateM_ 10000 $ atomicModifyIORefCAS ref $ \x -> let !x' = x + 1 in (x', ())
+             replicateM_ 10000 $ do
+               b <- atomicModifyIORefCAS ref $ \x -> let !x' = x+1 in x' `seq` (x', ())
+               b `seq` return b
            mapM_ wait xs
       ,  bench "AtomicCounter" $ whnfIO $ do
            xs <- forM [0 .. n] $ \i -> asyncOn i $
