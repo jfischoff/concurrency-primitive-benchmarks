@@ -34,7 +34,6 @@ main = do
            mapM_ wait xs
       ,  bench "atomicModifyIORefCAS" $ whnfIO $ do
            xs <- forM [0 .. n] $ \i -> asyncOn i $
-
              replicateM_ 10000 $ atomicModifyIORefCAS ref $ \x -> let !x' = x + 1 in (x', ())
            mapM_ wait xs
       ,  bench "AtomicCounter" $ whnfIO $ do
